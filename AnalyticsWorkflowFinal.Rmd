@@ -3,7 +3,6 @@ title: "An Analytics Workflow of Happiness Data"
 author: "Molly Izenson"
 output: 
   html_document:
-    keep_md: true
     toc: true
     toc_float: true
     number_sections: true
