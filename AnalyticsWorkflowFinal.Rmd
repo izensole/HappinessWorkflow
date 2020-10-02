@@ -28,7 +28,7 @@ pacman::p_load(dplyr, coefplot, DataExplorer, ggplot2)
 ```
 The dplyr package allows for manipulation of variables, such as selecting variables to drop from the analysis.
 The DataExplorer package gives the ability to introduce the data and create graphs to easily visualize the data.
-The coefplot is used to visualize the confidence intervals of the coefficinets in the regression model.
+The coefplot is used to visualize the confidence intervals of the coefficients in the regression model.
 
 ### Description of Data
 There are 1848 observations with 26 variables.A full dictionary of the variables can be found [here](https://happiness-report.s3.amazonaws.com/2020/WHR20_Ch2_Statistical_Appendix.pdf).
@@ -47,7 +47,7 @@ There are 1848 observations with 26 variables.A full dictionary of the variables
  * __GINI of household income__ (variable = giniIncGallup)
  * __GINI index__ from the World Bank (variable = giniIncWB)
  * __Average GINI index__ from the World Bank (variable = giniIncWBavg)
- *__Standard.deviation.mean.of.ladder.by.country.year__
+ * __Standard.deviation.mean.of.ladder.by.country.year__
  * __Standard.deviation.mean.of.ladder.year.by.country.year__
  * __Democratic.Quality__
  * __Delivery.Quality__ 
@@ -80,13 +80,12 @@ happy<-select(happy, -Most.people.can.be.trusted..WVS.round.2010.2014, -GINI.ind
 ```
 
 ```{r}
-library(DataExplorer)
 introduce(happy)
 ```
 Now there are 1385 missing values. 
 
 ## Imputation of Variables
-In order to account for the 1385 missing values, I will impute each variable with the median for each variable. By choosing median over mean, it  will limit the influence of outliers.
+In order to account for the 1385 missing values, I will impute each variable with the median for each variable. By choosing median over mean, it  will limit the influence of outliers. After the imputation, 
 
 ```{r, echo=FALSE, results='hide'}
 #gini.of.household.income.reported.in.Gallup..by.wp5.year
@@ -196,7 +195,6 @@ summary(happy$Social.support)
 Now, we can remove the variables created for the imputation containing the median. 
 ```{r, echo=FALSE}
 #remove M columns after imputation
-library(dplyr)
 happy <- select(happy, -M_Social.support, -M_Negative.affect, -M_Positive.affect, -M_Log.GDP.per.capita, -M_Freedom.to.make.life.choices, -M_Healthy.life.expectancy.at.birth, -M_Generosity, -M_Perceptions.of.corruption, -M_Delivery.Quality, -M_Democratic.Quality, -M_GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel, -M_confidence.in.national.government, -M_gini.of.household.income.reported.in.Gallup..by.wp5.year) 
 
 ```
@@ -207,11 +205,11 @@ plot_missing(happy)
 ```
 
 With no missing data, we can look at the correlation between variables. 
-```{r}
+```{r, echo=FALSE}
 happy$year <- as.integer(happy$year)
 ```
 
-```{r}
+```{r, echo=FALSE}
 happy_numeric<-unlist(lapply(happy, is.numeric))
 happy_numeric2<-happy[, happy_numeric]
 ```
@@ -229,7 +227,6 @@ The correlation plot is an easy way to visualize associations between variables.
 From the correlation plot, we can determine that there is a strong positive associations between the "standard.deviation.of.ladder.by.country.year" and the "standard.deviation.mean.of.ladder.by.country.year" and a strong negative association between "standard.deviation.mean.of.ladder.by.country.year" and "Life.ladder." So, I will not include  will not include either "standard.deviation.mean.of.ladder.by.country.year" or "standard.deviation.of.ladder.by.country.year" in the regression analysis because of its strong association with the target variable, which could lead to skewed results. It makes sense that these two variables would be correlated because the nature of the variable is directly related to the Ladder variable.
 
 ```{r}
-library(dplyr)
 happy<-select(happy, -Standard.deviation.of.ladder.by.country.year, -Standard.deviation.Mean.of.ladder.by.country.year)
 ```
 
@@ -238,6 +235,8 @@ happy<-select(happy, -Standard.deviation.of.ladder.by.country.year, -Standard.de
 happy.reg<-lm(Life.Ladder~Log.GDP.per.capita+Social.support+Healthy.life.expectancy.at.birth+Freedom.to.make.life.choices+Generosity+Perceptions.of.corruption+Positive.affect+Confidence.in.national.government+gini.of.household.income.reported.in.Gallup..by.wp5.year+Positive.affect:Confidence.in.national.government+Generosity:Delivery.Quality+Log.GDP.per.capita:Positive.affect+year-Country.name, data=happy)
 summary(happy.reg)
 ```
+The explanatory regression model includes 12 variables and 3 interaction variables. All of the variables included in the model are significant with p-values above alpha = .05.
+
 ```{r, echo=FALSE, results='hide'}
 confint(happy.reg,level=0.95)
 ```
@@ -246,9 +245,10 @@ confint(happy.reg,level=0.95)
 ```{r}
 coefplot(happy.reg, xlab = "Coefficient Confidence Intervals", varnames=NULL, intercept=FALSE)
 ```
+__Coefficient Plot Analysis:__
+The coefficient plot above displays the point estimates for each variable in the model and their confidence intervals.For example, if we wanted to interpret the coefficient of "Social.Support" we could say the mean of the happiness score (Life.Ladder variable) increases by 1.665423 points given a one-unit increase in the Social.Support score while holding other variables in the model constant.
 
 ## Justification of Model
-The explanatory model includes 12 variables and 3 interaction variables. All of the variables included in the model are significant with p-values above .05.
 
 __Slope interpretation:__
 If all the variables in the model are scored as 0, the Life.Ladder, or happiness, score is estimated to be 4.159059 (on a 0-10 scale).
@@ -260,9 +260,6 @@ The F-statistic is 561.7, with degrees of freedom k=12 and n−(k+1)=1835.
 The p-value is < 2.2e-16. 
 
 There is significant evidence at any reasonable level of significance to conclude that any of the variables in the model are significant linear predictors of the happiness level of a country.
-
-__Coefficient Plot Analysis:__
-The coefficient plot above displays the point estimates for each variable in the model and their confidence intervals.For example, if we wanted to interpret the coefficient of "Social.Support" we could say the mean of the happiness score (Life.Ladder variable) increases by 1.665423 points given a one-unit increase in the Social.Support score while holding other variables in the model constant.
 
 __R^2 Interpretation:__
 Ann R^2 score of 0.786 (Adjusted R-squared: 0.7846 accounts for the sample size and model parameters) implies that 78.6% of the observed variation in the happiness score of countries are accounted for by the model that includes a combination of the 13 variables in the model.
@@ -282,9 +279,7 @@ qqnorm(happy.reg$residuals)
 
 This Normal Q-Q Plot of the residuals appears there is normal distribution in the model, with some slight strays for normalcy in tails of the distribution.
 
+## What does this mean for the World Health Organization?
 
-### Address the BVP & how the solution meets the requirements of the customer segment
-```{r}
-#By determining the most significant factors that influence the Life.Ladder score, the World Health Organization can further look at the range of the scores by country and see where help is needed.
-```
+By determining the most significant factors that influence the Life.Ladder score, the World Health Organization can determine the range of happiness scores by country and explore options for improvement, especially within the variables that have the highest significant influence on the Life.Ladder score.
 
