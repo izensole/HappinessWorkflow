@@ -1,0 +1,290 @@
+---
+title: "An Analytics Workflow of Happiness Data"
+output: html_document
+author: "Molly Izenson"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Analysis Overview
+This data comes from the 2020 World Happiness Report, a survey that ranks 156 countries on how happy their citizens perceive themselves to be.
+
+The report can be found [here](https://worldhappiness.report/ed/2020/).
+
+### Goal of Analysis
+The goal of this analysis is to determine which factors have a statistically significant impact on a country's happiness, using the variable, Life Ladder, as y. This analysis is to be used by the World Health Organization (WHO) to better understand why and help countries who may have low levels of happiness. This analysis should provide insight to the WHO so that they can institute new policies that might, in the long run, affect happiness. It is crucial that this analysis is reusable in order for the audience to use the knowledge. 
+
+### Loading Data into R
+```{r}
+happy<-read.csv("HappyData.csv")
+```
+
+### Loading in Packages
+```{r}
+library(pacman)
+pacman::p_load(dplyr, coefplot, DataExplorer, ggplot2)
+```
+The dplyr package allows for manipulation of variables, such as selecting variables to drop from the analysis.
+The DataExplorer package gives the ability to introduce the data and create graphs to easily visualize the data.
+The coefplot is used to visualize the confidence intervals of the coefficinets in the regression model.
+
+### Description of Data
+There are 1848 observations with 26 variables.A full dictionary of the variables can be found [here](https://happiness-report.s3.amazonaws.com/2020/WHR20_Ch2_Statistical_Appendix.pdf).
+
+* __The Happiness Score__ or subjective well-being (variable = life ladder)
+ * __Country name__ study of 156 countries.
+ * __Year__ ranging from 2008 to 2019.
+ * __GDP per capita__ (variable = Log gdp per capita)
+ * __Healthy Life Expectancy__ (variable = Healthy life expectancy at birth)
+ * __Social Support__ or having someone to count on in times of trouble (variable = Social Support)
+ * __Freedom__ to make life choices (variable = Freedom to make life choices)
+ * __Generosity__ or donating money to charity in the past month (variable = Generosity)
+ * __Corruption Perception__, both within government and businesses (variable = Perceptions of Corruption)
+ * __Positive Affect__ (average of happiness, laugh, and enjoyment)
+ * __Negative Affect__ (average of worry, sadness, anger)
+ * __GINI of household income__ (variable = giniIncGallup)
+ * __GINI index__ from the World Bank (variable = giniIncWB)
+ * __Average GINI index__ from the World Bank (variable = giniIncWBavg)
+ *__Standard.deviation.mean.of.ladder.by.country.year__
+ * __Standard.deviation.mean.of.ladder.year.by.country.year__
+ * __Democratic.Quality__
+ * __Delivery.Quality__ 
+ * __GINI.index..World.Bank.estimate__
+ * __Most.people.can.be.trusted..WVS.round.1981.1984__
+ * __Most.people.can.be.trusted..WVS.round.1989.1993__
+ * __Most.people.can.be.trusted..WVS.round.1994.1998__
+ * __Most.people.can.be.trusted..WVS.round.1999.2004__
+ * __Most.people.can.be.trusted..WVS.round.2005.2009__
+ * __Most.people.can.be.trusted..WVS.round.2010.2014__
+ * __Most.people.can.be.trusted..Gallup__
+ 
+## Missing Data
+```{r}
+plot_missing(happy)
+```
+
+As you can see from the chart above and the data summary, there are 12,297 missing values in this data set.The plot above shows the percentages of missing data for each variable, determining if it is okay to keep it in, or if it should be removed.
+
+The Happiness Report acknowledges these missing values and says they did not use missing value to draw results from the happiness rankings and the regression outputs. However, they did make use of imputation in decomposing a country's average ladder score into components explained by 6 determinants (GDP per person, healthy life expectancy, social support, perceived freedom, generosity, and perception of corruption).
+
+A decision must be made on whether to keep or remove these variables with high percentages of missing values in the analysis. I am going to remove all variables with "Bad" or "Remove" labels.
+
+### Cleaning the Data
+The code below removes the 8 variables with missing data considered "Bad" or "Remove" from the dataset.
+```{r}
+library(dplyr)
+happy<-select(happy, -Most.people.can.be.trusted..WVS.round.2010.2014, -GINI.index..World.Bank.estimate., -Most.people.can.be.trusted..WVS.round.2005.2009, -Most.people.can.be.trusted..WVS.round.1994.1998, -Most.people.can.be.trusted..WVS.round.1999.2004, -Most.people.can.be.trusted..WVS.round.1989.1993, -Most.people.can.be.trusted..Gallup, -Most.people.can.be.trusted..WVS.round.1981.1984)
+
+```
+
+```{r}
+library(DataExplorer)
+introduce(happy)
+```
+Now there are 1385 missing values. 
+
+## Imputation of Variables
+In order to account for the 1385 missing values, I will impute each variable with the median for each variable. By choosing median over mean, it  will limit the influence of outliers.
+
+```{r, echo=FALSE, results='hide'}
+#gini.of.household.income.reported.in.Gallup..by.wp5.year
+summary(happy$gini.of.household.income.reported.in.Gallup..by.wp5.year)
+happy$M_gini.of.household.income.reported.in.Gallup..by.wp5.year<-as.factor(ifelse(is.na(happy$gini.of.household.income.reported.in.Gallup..by.wp5.year), 1, 0))
+happy$gini.of.household.income.reported.in.Gallup..by.wp5.year[is.na(happy$gini.of.household.income.reported.in.Gallup..by.wp5.year)]<-median(happy$gini.of.household.income.reported.in.Gallup..by.wp5.year, na.rm=TRUE)
+summary(happy$gini.of.household.income.reported.in.Gallup..by.wp5.year)
+```
+
+```{r, echo=FALSE, results='hide'}
+#Imputation for confidence in national government:
+summary(happy$Confidence.in.national.government)
+happy$M_confidence.in.national.government<-as.factor(ifelse(is.na(happy$Confidence.in.national.government), 1, 0))
+happy$Confidence.in.national.government[is.na(happy$Confidence.in.national.government)]<-median(happy$Confidence.in.national.government, na.rm=TRUE)
+summary(happy$Confidence.in.national.government)
+```
+
+```{r, echo=FALSE, results='hide'}
+#imputation for GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel
+summary(happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel)
+happy$M_GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel<-as.factor(ifelse(is.na(happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel), 1, 0))
+happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel[is.na(happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel)]<-median(happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel, na.rm=TRUE)
+summary(happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel)
+```
+
+Here is an example of the process for imputation for the variable "Democratic.Quality". The same process was repeated across the 13 variables that had any missing observations.
+```{r}
+#imputation for Democratic.Quality
+summary(happy$Democratic.Quality)
+happy$M_Democratic.Quality<-as.factor(ifelse(is.na(happy$Democratic.Quality), 1, 0))
+happy$Democratic.Quality[is.na(happy$Democratic.Quality)]<-median(happy$Democratic.Quality, na.rm=TRUE)
+summary(happy$Democratic.Quality)
+```
+
+```{r, echo=FALSE, results='hide'}
+#imputation for DeliveryQuality
+summary(happy$Delivery.Quality)
+happy$M_Delivery.Quality<-as.factor(ifelse(is.na(happy$Delivery.Quality), 1, 0))
+happy$Delivery.Quality[is.na(happy$Delivery.Quality)]<-median(happy$Delivery.Quality, na.rm=TRUE)
+summary(happy$Delivery.Quality)
+```
+
+```{r, echo=FALSE, results='hide'}
+#imputation for perceptions of corruption:
+summary(happy$Perceptions.of.corruption)
+happy$M_Perceptions.of.corruption<-as.factor(ifelse(is.na(happy$Perceptions.of.corruption), 1, 0))
+happy$Perceptions.of.corruption[is.na(happy$Perceptions.of.corruption)]<-median(happy$Perceptions.of.corruption, na.rm=TRUE)
+summary(happy$Perceptions.of.corruption)
+```
+
+```{r, echo=FALSE, results='hide'}
+#imputation for generosity
+summary(happy$Generosity)
+happy$M_Generosity<-as.factor(ifelse(is.na(happy$Generosity), 1, 0))
+happy$Generosity[is.na(happy$Generosity)]<-median(happy$Generosity, na.rm=TRUE)
+summary(happy$Generosity)
+```
+
+```{r, echo=FALSE, results='hide'}
+#imputation for healthy life expectancy at birth:
+summary(happy$Healthy.life.expectancy.at.birth)
+happy$M_Healthy.life.expectancy.at.birth<-as.factor(ifelse(is.na(happy$Healthy.life.expectancy.at.birth), 1, 0))
+happy$Healthy.life.expectancy.at.birth[is.na(happy$Healthy.life.expectancy.at.birth)]<-median(happy$Healthy.life.expectancy.at.birth, na.rm=TRUE)
+summary(happy$Healthy.life.expectancy.at.birth)
+```
+
+```{r, echo=FALSE, results='hide'}
+#imputation for freedom to make life choices
+summary(happy$Freedom.to.make.life.choices)
+happy$M_Freedom.to.make.life.choices<-as.factor(ifelse(is.na(happy$Freedom.to.make.life.choices), 1, 0))
+happy$Freedom.to.make.life.choices[is.na(happy$Freedom.to.make.life.choices)]<-median(happy$Freedom.to.make.life.choices, na.rm=TRUE)
+summary(happy$Freedom.to.make.life.choices)
+```
+
+```{r, echo=FALSE, results='hide'}
+#imputation for Log.GDP per capita
+summary(happy$Log.GDP.per.capita)
+happy$M_Log.GDP.per.capita<-as.factor(ifelse(is.na(happy$Log.GDP.per.capita), 1, 0))
+happy$Log.GDP.per.capita[is.na(happy$Log.GDP.per.capita)]<-median(happy$Log.GDP.per.capita, na.rm=TRUE)
+summary(happy$Log.GDP.per.capita)
+```
+
+```{r, echo=FALSE, results='hide'}
+#imputation for positive affect
+summary(happy$Positive.affect)
+happy$M_Positive.affect<-as.factor(ifelse(is.na(happy$Positive.affect), 1, 0))
+happy$Positive.affect[is.na(happy$Positive.affect)]<-median(happy$Positive.affect, na.rm=TRUE)
+summary(happy$Positive.affect)
+```
+
+```{r, echo=FALSE, results='hide'}
+#imputation for negative affect:
+summary(happy$Negative.affect)
+happy$M_Negative.affect<-as.factor(ifelse(is.na(happy$Negative.affect), 1, 0))
+happy$Negative.affect[is.na(happy$Negative.affect)]<-median(happy$Negative.affect, na.rm=TRUE)
+summary(happy$Negative.affect)
+```
+
+```{r, echo=FALSE, results='hide'}
+#imputation for social support
+summary(happy$Social.support)
+happy$M_Social.support<-as.factor(ifelse(is.na(happy$Social.support), 1, 0))
+happy$Social.support[is.na(happy$Social.support)]<-median(happy$Social.support, na.rm=TRUE)
+summary(happy$Social.support)
+```
+
+Now, we can remove the variables created for the imputation containing the median. 
+```{r, echo=FALSE}
+#remove M columns after imputation
+library(dplyr)
+happy <- select(happy, -M_Social.support, -M_Negative.affect, -M_Positive.affect, -M_Log.GDP.per.capita, -M_Freedom.to.make.life.choices, -M_Healthy.life.expectancy.at.birth, -M_Generosity, -M_Perceptions.of.corruption, -M_Delivery.Quality, -M_Democratic.Quality, -M_GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel, -M_confidence.in.national.government, -M_gini.of.household.income.reported.in.Gallup..by.wp5.year) 
+
+```
+
+As you can see, now there are zero missing observations in the dataset.
+```{r}
+plot_missing(happy)
+```
+
+With no missing data, we can look at the correlation between variables. 
+```{r}
+happy$year <- as.integer(happy$year)
+```
+
+```{r}
+happy_numeric<-unlist(lapply(happy, is.numeric))
+happy_numeric2<-happy[, happy_numeric]
+```
+
+```{r}
+M<-cor(happy_numeric2, use = "complete.obs")
+library("corrplot")
+corrplot(M, type = "upper", tl.pos = "td",
+         method = "circle", tl.cex = 0.5, tl.col = 'black',
+         order = "hclust", diag = TRUE)
+```
+
+The correlation plot is an easy way to visualize associations between variables. Strong positive associations are indicated by large dark blue dots and strong negative associations are indicated by large dark red dots.
+
+From the correlation plot, we can determine that there is a strong positive associations between the "standard.deviation.of.ladder.by.country.year" and the "standard.deviation.mean.of.ladder.by.country.year" and a strong negative association between "standard.deviation.mean.of.ladder.by.country.year" and "Life.ladder." So, I will not include  will not include either "standard.deviation.mean.of.ladder.by.country.year" or "standard.deviation.of.ladder.by.country.year" in the regression analysis because of its strong association with the target variable, which could lead to skewed results. It makes sense that these two variables would be correlated because the nature of the variable is directly related to the Ladder variable.
+
+```{r}
+library(dplyr)
+happy<-select(happy, -Standard.deviation.of.ladder.by.country.year, -Standard.deviation.Mean.of.ladder.by.country.year)
+```
+
+## The Regression Model
+```{r}
+happy.reg<-lm(Life.Ladder~Log.GDP.per.capita+Social.support+Healthy.life.expectancy.at.birth+Freedom.to.make.life.choices+Generosity+Perceptions.of.corruption+Positive.affect+Confidence.in.national.government+gini.of.household.income.reported.in.Gallup..by.wp5.year+Positive.affect:Confidence.in.national.government+Generosity:Delivery.Quality+Log.GDP.per.capita:Positive.affect+year-Country.name, data=happy)
+summary(happy.reg)
+```
+```{r, echo=FALSE, results='hide'}
+confint(happy.reg,level=0.95)
+```
+
+### Visualizations of Model
+```{r}
+coefplot(happy.reg, xlab = "Coefficient Confidence Intervals", varnames=NULL, intercept=FALSE)
+```
+
+## Justification of Model
+The explanatory model includes 12 variables and 3 interaction variables. All of the variables included in the model are significant with p-values above .05.
+
+__Slope interpretation:__
+If all the variables in the model are scored as 0, the Life.Ladder, or happiness, score is estimated to be 4.159059 (on a 0-10 scale).
+
+__Model significance test:__
+H0: β1=β2=β3=β4=β5=β6=β7=β8=β9=β10=β11=β12=β13=0
+Ha: at least one βk≠0
+The F-statistic is 561.7, with degrees of freedom k=12 and n−(k+1)=1835.
+The p-value is < 2.2e-16. 
+
+There is significant evidence at any reasonable level of significance to conclude that any of the variables in the model are significant linear predictors of the happiness level of a country.
+
+__Coefficient Plot Analysis:__
+The coefficient plot above displays the point estimates for each variable in the model and their confidence intervals.For example, if we wanted to interpret the coefficient of "Social.Support" we could say the mean of the happiness score (Life.Ladder variable) increases by 1.665423 points given a one-unit increase in the Social.Support score while holding other variables in the model constant.
+
+__R^2 Interpretation:__
+Ann R^2 score of 0.786 (Adjusted R-squared: 0.7846 accounts for the sample size and model parameters) implies that 78.6% of the observed variation in the happiness score of countries are accounted for by the model that includes a combination of the 13 variables in the model.
+
+### Plot of Assumptions
+Residuals vs. Fitted Values:
+```{r, echo=FALSE}
+plot(happy.reg$fitted.values,happy.reg$residuals,ylab="Residuals",xlab="Fitted Values",main="Residuals vs. Fitted Values")
+abline(0,0)
+```
+
+The plot of the Residuals vs. Fitted Values above shows the residuals randomly scattered around the 0 line, suggesting that the assumption that the relationship is linear is accurate and that the variances of the error terms are equal. The graph does not show any major outliers.
+
+```{r, echo=FALSE}
+qqnorm(happy.reg$residuals)
+```
+
+This Normal Q-Q Plot of the residuals appears there is normal distribution in the model, with some slight strays for normalcy in tails of the distribution.
+
+
+### Address the BVP & how the solution meets the requirements of the customer segment
+```{r}
+#By determining the most significant factors that influence the Life.Ladder score, the World Health Organization can further look at the range of the scores by country and see where help is needed.
+```
+
