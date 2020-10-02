@@ -10,9 +10,7 @@ output:
 
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 # Analysis Overview
 This data comes from the 2020 World Happiness Report, a survey that ranks 156 countries on how happy their citizens perceive themselves to be. The most important source of data from the Report is the Gallup World Poll, which surveys citizens' life evaluations, leading to the happiness ranking. 
@@ -23,12 +21,14 @@ The report can be found [here](https://worldhappiness.report/ed/2020/).
 The goal of this analysis is to determine which factors have a statistically significant impact on a country's happiness, using the variable, Life Ladder, as y. This analysis is to be used by the World Health Organization (WHO) to better understand why and help countries who may have low levels of happiness. This analysis should provide insight to the WHO so that they can institute new policies that might, in the long run, affect happiness. It is crucial that this analysis is reusable in order for the audience to use the knowledge. 
 
 ### Loading Data into R
-```{r}
+
+```r
 happy<-read.csv("HappyData.csv")
 ```
 
 ### Loading in Packages
-```{r}
+
+```r
 library(pacman)
 pacman::p_load(dplyr, coefplot, DataExplorer)
 ```
@@ -67,27 +67,65 @@ There are 1848 observations with 26 variables.A full dictionary of the variables
  * __Most.people.can.be.trusted..Gallup__
  
 ## Introduction of Data 
-```{r}
+
+```r
 head(happy)[1:5]
+```
+
+```
+##   Country.name year Life.Ladder Log.GDP.per.capita Social.support
+## 1  Afghanistan 2008    3.723590           7.144916      0.4506623
+## 2  Afghanistan 2009    4.401778           7.314788      0.5523084
+## 3  Afghanistan 2010    4.758381           7.421525      0.5390752
+## 4  Afghanistan 2011    3.831719           7.394349      0.5211036
+## 5  Afghanistan 2012    3.782938           7.480296      0.5206367
+## 6  Afghanistan 2013    3.572100           7.499845      0.4835519
+```
+
+```r
 tail(happy)[1:5]
-``` 
+```
+
+```
+##      Country.name year Life.Ladder Log.GDP.per.capita Social.support
+## 1843     Zimbabwe 2014    4.184451           7.826639      0.7658390
+## 1844     Zimbabwe 2015    3.703191           7.827643      0.7358003
+## 1845     Zimbabwe 2016    3.735400           7.819675      0.7684254
+## 1846     Zimbabwe 2017    3.638300           7.851042      0.7541471
+## 1847     Zimbabwe 2018    3.616480           7.896704      0.7753885
+## 1848     Zimbabwe 2019    2.693523           7.850442      0.7591623
+```
 The head and tails of the data give the first and last six observations for the first five variables in the dataset. As you can see, there are multiple years recorded for each country.
 
-```{r}
+
+```r
 introduce(happy)
+```
+
+```
+##   rows columns discrete_columns continuous_columns all_missing_columns
+## 1 1848      26                1                 25                   0
+##   total_missing_values complete_rows total_observations memory_usage
+## 1                12297             3              48048       388800
 ```
 As mentioned above, there are 1848 observations from 26 variables, with 12,297 missing values. The missing values will be addressed further along in this analysis.
 
-```{r}
+
+```r
 plot_histogram(happy)
 ```
+
+![](AnalyticsWorkflowFinal_files/figure-html/unnamed-chunk-5-1.png)<!-- -->![](AnalyticsWorkflowFinal_files/figure-html/unnamed-chunk-5-2.png)<!-- -->
 
 These histograms give insight quick visual insight into the remaining variables. It is clear that some of the variables are skewed, such as "Perceptions.of.corruption" and "Social.support", meaning the distribution of these variables varies from a normal distribution. 
 
 ## Missing Data
-```{r}
+
+```r
 plot_missing(happy)
 ```
+
+![](AnalyticsWorkflowFinal_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 As you can see from the chart above and the data summary, there are 12,297 missing values in this data set.The plot above shows the percentages of missing data for each variable, determining if it is okay to keep it in, or if it should be removed.
 
@@ -97,178 +135,189 @@ A decision must be made on whether to keep or remove these variables with high p
 
 # Cleaning the Data
 The code below removes the 8 variables with missing data considered "Bad" or "Remove" from the dataset.
-```{r}
+
+```r
 library(dplyr)
 happy<-select(happy, -Most.people.can.be.trusted..WVS.round.2010.2014, -GINI.index..World.Bank.estimate., -Most.people.can.be.trusted..WVS.round.2005.2009, -Most.people.can.be.trusted..WVS.round.1994.1998, -Most.people.can.be.trusted..WVS.round.1999.2004, -Most.people.can.be.trusted..WVS.round.1989.1993, -Most.people.can.be.trusted..Gallup, -Most.people.can.be.trusted..WVS.round.1981.1984)
-
 ```
 
-```{r}
+
+```r
 introduce(happy)
+```
+
+```
+##   rows columns discrete_columns continuous_columns all_missing_columns
+## 1 1848      18                1                 17                   0
+##   total_missing_values complete_rows total_observations memory_usage
+## 1                 1385          1083              33264       268416
 ```
 Now there are 1385 missing values. 
 
 ## Imputation of Variables
 In order to account for the 1385 missing values, I will impute each variable with the median for each variable. By choosing median over mean, it  will limit the influence of outliers. After the imputation, 
 
-```{r, echo=FALSE, results='hide'}
-#gini.of.household.income.reported.in.Gallup..by.wp5.year
-summary(happy$gini.of.household.income.reported.in.Gallup..by.wp5.year)
-happy$M_gini.of.household.income.reported.in.Gallup..by.wp5.year<-as.factor(ifelse(is.na(happy$gini.of.household.income.reported.in.Gallup..by.wp5.year), 1, 0))
-happy$gini.of.household.income.reported.in.Gallup..by.wp5.year[is.na(happy$gini.of.household.income.reported.in.Gallup..by.wp5.year)]<-median(happy$gini.of.household.income.reported.in.Gallup..by.wp5.year, na.rm=TRUE)
-summary(happy$gini.of.household.income.reported.in.Gallup..by.wp5.year)
-```
 
-```{r, echo=FALSE, results='hide'}
-#Imputation for confidence in national government:
-summary(happy$Confidence.in.national.government)
-happy$M_confidence.in.national.government<-as.factor(ifelse(is.na(happy$Confidence.in.national.government), 1, 0))
-happy$Confidence.in.national.government[is.na(happy$Confidence.in.national.government)]<-median(happy$Confidence.in.national.government, na.rm=TRUE)
-summary(happy$Confidence.in.national.government)
-```
 
-```{r, echo=FALSE, results='hide'}
-#imputation for GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel
-summary(happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel)
-happy$M_GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel<-as.factor(ifelse(is.na(happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel), 1, 0))
-happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel[is.na(happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel)]<-median(happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel, na.rm=TRUE)
-summary(happy$GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel)
-```
+
+
+
 
 Here is an example of the process for imputation for the variable "Democratic.Quality". The same process was repeated across the 13 variables that had any missing observations.
-```{r}
+
+```r
 #imputation for Democratic.Quality
 summary(happy$Democratic.Quality)
+```
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+## -2.4483 -0.7885 -0.2259 -0.1350  0.6531  1.5825     149
+```
+
+```r
 happy$M_Democratic.Quality<-as.factor(ifelse(is.na(happy$Democratic.Quality), 1, 0))
 happy$Democratic.Quality[is.na(happy$Democratic.Quality)]<-median(happy$Democratic.Quality, na.rm=TRUE)
 summary(happy$Democratic.Quality)
 ```
 
-```{r, echo=FALSE, results='hide'}
-#imputation for DeliveryQuality
-summary(happy$Delivery.Quality)
-happy$M_Delivery.Quality<-as.factor(ifelse(is.na(happy$Delivery.Quality), 1, 0))
-happy$Delivery.Quality[is.na(happy$Delivery.Quality)]<-median(happy$Delivery.Quality, na.rm=TRUE)
-summary(happy$Delivery.Quality)
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+## -2.4483 -0.7350 -0.2259 -0.1423  0.5428  1.5825
 ```
 
-```{r, echo=FALSE, results='hide'}
-#imputation for perceptions of corruption:
-summary(happy$Perceptions.of.corruption)
-happy$M_Perceptions.of.corruption<-as.factor(ifelse(is.na(happy$Perceptions.of.corruption), 1, 0))
-happy$Perceptions.of.corruption[is.na(happy$Perceptions.of.corruption)]<-median(happy$Perceptions.of.corruption, na.rm=TRUE)
-summary(happy$Perceptions.of.corruption)
-```
 
-```{r, echo=FALSE, results='hide'}
-#imputation for generosity
-summary(happy$Generosity)
-happy$M_Generosity<-as.factor(ifelse(is.na(happy$Generosity), 1, 0))
-happy$Generosity[is.na(happy$Generosity)]<-median(happy$Generosity, na.rm=TRUE)
-summary(happy$Generosity)
-```
 
-```{r, echo=FALSE, results='hide'}
-#imputation for healthy life expectancy at birth:
-summary(happy$Healthy.life.expectancy.at.birth)
-happy$M_Healthy.life.expectancy.at.birth<-as.factor(ifelse(is.na(happy$Healthy.life.expectancy.at.birth), 1, 0))
-happy$Healthy.life.expectancy.at.birth[is.na(happy$Healthy.life.expectancy.at.birth)]<-median(happy$Healthy.life.expectancy.at.birth, na.rm=TRUE)
-summary(happy$Healthy.life.expectancy.at.birth)
-```
 
-```{r, echo=FALSE, results='hide'}
-#imputation for freedom to make life choices
-summary(happy$Freedom.to.make.life.choices)
-happy$M_Freedom.to.make.life.choices<-as.factor(ifelse(is.na(happy$Freedom.to.make.life.choices), 1, 0))
-happy$Freedom.to.make.life.choices[is.na(happy$Freedom.to.make.life.choices)]<-median(happy$Freedom.to.make.life.choices, na.rm=TRUE)
-summary(happy$Freedom.to.make.life.choices)
-```
 
-```{r, echo=FALSE, results='hide'}
-#imputation for Log.GDP per capita
-summary(happy$Log.GDP.per.capita)
-happy$M_Log.GDP.per.capita<-as.factor(ifelse(is.na(happy$Log.GDP.per.capita), 1, 0))
-happy$Log.GDP.per.capita[is.na(happy$Log.GDP.per.capita)]<-median(happy$Log.GDP.per.capita, na.rm=TRUE)
-summary(happy$Log.GDP.per.capita)
-```
 
-```{r, echo=FALSE, results='hide'}
-#imputation for positive affect
-summary(happy$Positive.affect)
-happy$M_Positive.affect<-as.factor(ifelse(is.na(happy$Positive.affect), 1, 0))
-happy$Positive.affect[is.na(happy$Positive.affect)]<-median(happy$Positive.affect, na.rm=TRUE)
-summary(happy$Positive.affect)
-```
 
-```{r, echo=FALSE, results='hide'}
-#imputation for negative affect:
-summary(happy$Negative.affect)
-happy$M_Negative.affect<-as.factor(ifelse(is.na(happy$Negative.affect), 1, 0))
-happy$Negative.affect[is.na(happy$Negative.affect)]<-median(happy$Negative.affect, na.rm=TRUE)
-summary(happy$Negative.affect)
-```
 
-```{r, echo=FALSE, results='hide'}
-#imputation for social support
-summary(happy$Social.support)
-happy$M_Social.support<-as.factor(ifelse(is.na(happy$Social.support), 1, 0))
-happy$Social.support[is.na(happy$Social.support)]<-median(happy$Social.support, na.rm=TRUE)
-summary(happy$Social.support)
-```
+
+
+
+
+
+
+
+
+
+
 
 Now, we can remove the variables created for the imputation containing the median. 
-```{r, echo=FALSE}
-#remove M columns after imputation
-happy <- select(happy, -M_Social.support, -M_Negative.affect, -M_Positive.affect, -M_Log.GDP.per.capita, -M_Freedom.to.make.life.choices, -M_Healthy.life.expectancy.at.birth, -M_Generosity, -M_Perceptions.of.corruption, -M_Delivery.Quality, -M_Democratic.Quality, -M_GINI.index..World.Bank.estimate...average.2000.2017..unbalanced.panel, -M_confidence.in.national.government, -M_gini.of.household.income.reported.in.Gallup..by.wp5.year) 
 
-```
 
 As you can see, now there are zero missing observations in the dataset.
-```{r}
+
+```r
 plot_missing(happy)
 ```
 
+![](AnalyticsWorkflowFinal_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
+
 With no missing data, we can look at the correlation between variables. 
-```{r, echo=FALSE}
-happy$year <- as.integer(happy$year)
-```
 
-```{r, echo=FALSE}
-happy_numeric<-unlist(lapply(happy, is.numeric))
-happy_numeric2<-happy[, happy_numeric]
-```
 
-```{r}
+
+
+
+```r
 M<-cor(happy_numeric2, use = "complete.obs")
 library("corrplot")
+```
+
+```
+## corrplot 0.84 loaded
+```
+
+```r
 corrplot(M, type = "upper", tl.pos = "td",
          method = "circle", tl.cex = 0.5, tl.col = 'black',
          order = "hclust", diag = TRUE)
 ```
 
+![](AnalyticsWorkflowFinal_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
+
 The correlation plot is an easy way to visualize associations between variables. Strong positive associations are indicated by large dark blue dots and strong negative associations are indicated by large dark red dots.
 
 From the correlation plot, we can determine that there is a strong positive associations between the "standard.deviation.of.ladder.by.country.year" and the "standard.deviation.mean.of.ladder.by.country.year" and a strong negative association between "standard.deviation.mean.of.ladder.by.country.year" and "Life.ladder." So, I will not include  will not include either "standard.deviation.mean.of.ladder.by.country.year" or "standard.deviation.of.ladder.by.country.year" in the regression analysis because of its strong association with the target variable, which could lead to skewed results. It makes sense that these two variables would be correlated because the nature of the variable is directly related to the Ladder variable.
 
-```{r}
+
+```r
 happy<-select(happy, -Standard.deviation.of.ladder.by.country.year, -Standard.deviation.Mean.of.ladder.by.country.year)
 ```
 
 # The Regression Model
-```{r}
+
+```r
 happy.reg<-lm(Life.Ladder~Log.GDP.per.capita+Social.support+Healthy.life.expectancy.at.birth+Freedom.to.make.life.choices+Generosity+Perceptions.of.corruption+Positive.affect+Confidence.in.national.government+gini.of.household.income.reported.in.Gallup..by.wp5.year+Positive.affect:Confidence.in.national.government+Generosity:Delivery.Quality+Log.GDP.per.capita:Positive.affect+year-Country.name, data=happy)
 summary(happy.reg)
 ```
+
+```
+## 
+## Call:
+## lm(formula = Life.Ladder ~ Log.GDP.per.capita + Social.support + 
+##     Healthy.life.expectancy.at.birth + Freedom.to.make.life.choices + 
+##     Generosity + Perceptions.of.corruption + Positive.affect + 
+##     Confidence.in.national.government + gini.of.household.income.reported.in.Gallup..by.wp5.year + 
+##     Positive.affect:Confidence.in.national.government + Generosity:Delivery.Quality + 
+##     Log.GDP.per.capita:Positive.affect + year - Country.name, 
+##     data = happy)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.60165 -0.30889  0.00491  0.33312  1.96549 
+## 
+## Coefficients:
+##                                                           Estimate Std. Error
+## (Intercept)                                              21.872538   6.649001
+## Log.GDP.per.capita                                       -0.439490   0.089261
+## Social.support                                            1.620168   0.156891
+## Healthy.life.expectancy.at.birth                          0.028397   0.003045
+## Freedom.to.make.life.choices                              0.769667   0.134978
+## Generosity                                                0.411019   0.088383
+## Perceptions.of.corruption                                -0.536434   0.090389
+## Positive.affect                                          -5.874228   1.190338
+## Confidence.in.national.government                         2.110861   0.476826
+## gini.of.household.income.reported.in.Gallup..by.wp5.year -1.049087   0.146153
+## year                                                     -0.008834   0.003291
+## Positive.affect:Confidence.in.national.government        -3.700270   0.660447
+## Generosity:Delivery.Quality                               0.331489   0.085651
+## Log.GDP.per.capita:Positive.affect                        1.064768   0.122140
+##                                                          t value Pr(>|t|)    
+## (Intercept)                                                3.290 0.001022 ** 
+## Log.GDP.per.capita                                        -4.924 9.26e-07 ***
+## Social.support                                            10.327  < 2e-16 ***
+## Healthy.life.expectancy.at.birth                           9.327  < 2e-16 ***
+## Freedom.to.make.life.choices                               5.702 1.38e-08 ***
+## Generosity                                                 4.650 3.55e-06 ***
+## Perceptions.of.corruption                                 -5.935 3.51e-09 ***
+## Positive.affect                                           -4.935 8.74e-07 ***
+## Confidence.in.national.government                          4.427 1.01e-05 ***
+## gini.of.household.income.reported.in.Gallup..by.wp5.year  -7.178 1.02e-12 ***
+## year                                                      -2.684 0.007332 ** 
+## Positive.affect:Confidence.in.national.government         -5.603 2.43e-08 ***
+## Generosity:Delivery.Quality                                3.870 0.000113 ***
+## Log.GDP.per.capita:Positive.affect                         8.718  < 2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.5184 on 1834 degrees of freedom
+## Multiple R-squared:  0.7869,	Adjusted R-squared:  0.7854 
+## F-statistic: 520.8 on 13 and 1834 DF,  p-value: < 2.2e-16
+```
 The explanatory regression model includes 12 variables and 3 interaction variables.  All of the variables included in the model are significant with p-values above alpha = .05.
 
-```{r, echo=FALSE, results='hide'}
-confint(happy.reg,level=0.95)
-```
+
 
 # Visualizations of Model
-```{r}
+
+```r
 coefplot(happy.reg, xlab = "Coefficient Confidence Intervals", varnames=NULL, intercept=FALSE)
 ```
+
+![](AnalyticsWorkflowFinal_files/figure-html/unnamed-chunk-30-1.png)<!-- -->
 
 __Coefficient Plot Analysis:__
 The coefficient plot above displays the point estimates for each variable in the model and their confidence intervals.For example, if we wanted to interpret the coefficient of "Social.Support" we could say the mean of the happiness score (Life.Ladder variable) increases by 1.665423 points given a one-unit increase in the Social.Support score while holding other variables in the model constant.
@@ -294,16 +343,11 @@ An $R^2$ score of 0.786 (Adjusted R-squared: 0.7846 accounts for the sample size
 
 ## Plot of Assumptions
 Residuals vs. Fitted Values:
-```{r, echo=FALSE}
-plot(happy.reg$fitted.values,happy.reg$residuals,ylab="Residuals",xlab="Fitted Values",main="Residuals vs. Fitted Values")
-abline(0,0)
-```
+![](AnalyticsWorkflowFinal_files/figure-html/unnamed-chunk-31-1.png)<!-- -->
 
 The plot of the Residuals vs. Fitted Values above shows the residuals randomly scattered around the 0 line, suggesting that the assumption that the relationship is linear is accurate and that the variances of the error terms are equal. The graph does not show any major outliers.
 
-```{r, echo=FALSE}
-qqnorm(happy.reg$residuals)
-```
+![](AnalyticsWorkflowFinal_files/figure-html/unnamed-chunk-32-1.png)<!-- -->
 
 This Normal Q-Q Plot of the residuals appears there is normal distribution in the model, with some slight strays for normalcy in tails of the distribution.
 
