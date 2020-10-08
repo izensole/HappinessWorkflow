@@ -3,9 +3,11 @@ title: "An Analytics Workflow of Happiness Data"
 author: "Molly Izenson"
 output: 
   html_document:
-    toc: true
-    toc_float: true
-    number_sections: true
+    toc: TRUE
+    toc_float: TRUE
+    number_sections: FALSE
+    theme: spacelab
+    code_folding: hide
 
 ---
 
@@ -21,13 +23,9 @@ The report can be found [here](https://worldhappiness.report/ed/2020/).
 ### Goal of Analysis
 The goal of this analysis is to determine which factors have a statistically significant impact on a country's happiness, using the variable, Life Ladder, as y. This analysis is to be used by the World Health Organization (WHO) to better understand why and help countries who may have low levels of happiness. This analysis should provide insight to the WHO so that they can institute new policies that might, in the long run, affect happiness. It is crucial that this analysis is reusable in order for the audience to use the knowledge. 
 
-### Loading Data into R
+#### Loading Data and Packages into R
 ```{r}
 happy<-read.csv("HappyData.csv")
-```
-
-### Loading in Packages
-```{r}
 library(pacman)
 pacman::p_load(dplyr, coefplot, DataExplorer)
 ```
@@ -38,39 +36,39 @@ pacman::p_load(dplyr, coefplot, DataExplorer)
 # Description of Data
 There are 1848 observations with 26 variables.A full dictionary of the variables can be found [here](https://happiness-report.s3.amazonaws.com/2020/WHR20_Ch2_Statistical_Appendix.pdf).
 
-* __The Happiness Score__ or subjective well-being (variable = Life.Ladder)
- * __Country name__ study of 156 countries.
- * __Year__ ranging from 2005 to 2019.
- * __GDP per capita__ (variable = Log gdp per capita)
- * __Healthy Life Expectancy__ (variable = Healthy life expectancy at birth)
- * __Social Support__ or having someone to count on in times of trouble (variable = Social Support)
- * __Freedom__ to make life choices (variable = Freedom to make life choices)
- * __Generosity__ or donating money to charity in the past month (variable = Generosity)
- * __Corruption Perception__, both within government and businesses (variable = Perceptions of Corruption)
- * __Positive Affect__ (average of happiness, laugh, and enjoyment)
- * __Negative Affect__ (average of worry, sadness, anger)
- * __GINI of household income__ (variable = giniIncGallup)
- * __GINI index__ from the World Bank (variable = giniIncWB)
+* __Life.Ladder__ or happiness score for a country on a given year, on a scale of 0 to 10.
+ * __Country.name__ is the name of 156 countries.
+ * __Year__ is the year the data was collected, from 2005 to 2019.
+ * __Log.GDP.per.capita__ is the log of a country's GDP per capita.
+ * __Healthy.life.expectancy.at.birth__ is the average life expectancy for a person at birth.
+ * __Social.Support__ is the percentage of people who say they have someone to count on in times of trouble 
+ * __Freedom.to.make.life.choices__ is the national average of a citizen's belief on their amount of freedom.
+ * __Generosity__ is the residual of regressing national average to the GWP response question, "Have you donated money to a charity in the past month? on GDP per capita.
+ * __Perceptions.of.Corruption__ is the percentage of people who believe there is corruption in their country, both within government and businesses.
+ * __Positive.Affect__ is the average of how many times a person feels happiness, laugh, and enjoyment in a day.
+ * __Negative Affect__ is the average of how many times a person feels worry, sadness, anger in a day.
+ * __giniIncGallup__ measures the GINI of household income.
+ * __giniIncWB__ is the GINI index from the World Bank.
  * __Average GINI index__ from the World Bank (variable = giniIncWBavg)
- * __Standard.deviation.mean.of.ladder.by.country.year__
- * __Standard.deviation.mean.of.ladder.year.by.country.year__
- * __Democratic.Quality__
- * __Delivery.Quality__ 
- * __GINI.index..World.Bank.estimate__
- * __Most.people.can.be.trusted..WVS.round.1981.1984__
- * __Most.people.can.be.trusted..WVS.round.1989.1993__
- * __Most.people.can.be.trusted..WVS.round.1994.1998__
- * __Most.people.can.be.trusted..WVS.round.1999.2004__
- * __Most.people.can.be.trusted..WVS.round.2005.2009__
- * __Most.people.can.be.trusted..WVS.round.2010.2014__
- * __Most.people.can.be.trusted..Gallup__
+ * __Standard.deviation.of.ladder.by.country.year__ measures the inequality of happiness.
+ * __Standard.deviation.mean.of.ladder.year.by.country.year__ measures the mean of the inequality of happiness.
+ * __Democratic.Quality__ measures how democratic a country's government is. 
+ * __Delivery.Quality__ measures how democratic a country's government is.
+ * __GINI.index..World.Bank.estimate__ measures the World Bank data for a country.
+ * __Most.people.can.be.trusted..WVS.round.1981.1984__ is the average percentage of people in a country that most people can be trused from 1981 to 1984.
+ * __Most.people.can.be.trusted..WVS.round.1989.1993__ is the average percentage of people in a country that most people can be trused from 19889 to 1993.
+ * __Most.people.can.be.trusted..WVS.round.1994.1998__ is the average percentage of people in a country that most people can be trused from 1994 to 1998.
+ * __Most.people.can.be.trusted..WVS.round.1999.2004__ is the average percentage of people in a country that most people can be trused from 1999 to 2004.
+ * __Most.people.can.be.trusted..WVS.round.2005.2009__ is the average percentage of people in a country that most people can be trused from 2005 to 2009.
+ * __Most.people.can.be.trusted..WVS.round.2010.2014__ is the average percentage of people in a country that most people can be trused from 2010 to 2014.
+ * __Most.people.can.be.trusted..Gallup__ is the average percentage of people in a country that most people can be trused.
  
 ## Introduction of Data 
+The head and tails of the data below give the first and last six observations for the first five variables in the dataset. As you can see, there are multiple years recorded for each country.
 ```{r}
 head(happy)[1:5]
 tail(happy)[1:5]
 ``` 
-The head and tails of the data give the first and last six observations for the first five variables in the dataset. As you can see, there are multiple years recorded for each country.
 
 ```{r}
 introduce(happy)
@@ -95,7 +93,7 @@ The Happiness Report acknowledges these missing values and says they did not use
 A decision must be made on whether to keep or remove these variables with high percentages of missing values in the analysis. I am going to remove all variables with "Bad" or "Remove" labels.
 
 # Cleaning the Data
-The code below removes the 8 variables with missing data considered "Bad" or "Remove" from the dataset.
+The code below removes the 8 variables with missing data considered "Bad" or "Remove" from the dataset. Removing these variables will allow for the analysis to be more accurate.
 ```{r}
 library(dplyr)
 happy<-select(happy, -Most.people.can.be.trusted..WVS.round.2010.2014, -GINI.index..World.Bank.estimate., -Most.people.can.be.trusted..WVS.round.2005.2009, -Most.people.can.be.trusted..WVS.round.1994.1998, -Most.people.can.be.trusted..WVS.round.1999.2004, -Most.people.can.be.trusted..WVS.round.1989.1993, -Most.people.can.be.trusted..Gallup, -Most.people.can.be.trusted..WVS.round.1981.1984)
@@ -108,7 +106,7 @@ introduce(happy)
 Now there are 1385 missing values. 
 
 ## Imputation of Variables
-In order to account for the 1385 missing values, I will impute each variable with the median for each variable. By choosing median over mean, it  will limit the influence of outliers. After the imputation, 
+In order to account for the 1385 missing values, instead of choosing to eliminate each variables with missing and losing the potentially important information contained, I will impute each variable with the median for each variable. By choosing median over mean, it  will limit the influence of outliers. After the imputation, I will remove the indicator variable in order to reduce my degrees of freedom in the model.
 
 ```{r, echo=FALSE, results='hide'}
 #gini.of.household.income.reported.in.Gallup..by.wp5.year
@@ -249,16 +247,23 @@ The correlation plot is an easy way to visualize associations between variables.
 
 From the correlation plot, we can determine that there is a strong positive associations between the "standard.deviation.of.ladder.by.country.year" and the "standard.deviation.mean.of.ladder.by.country.year" and a strong negative association between "standard.deviation.mean.of.ladder.by.country.year" and "Life.ladder." So, I will not include  will not include either "standard.deviation.mean.of.ladder.by.country.year" or "standard.deviation.of.ladder.by.country.year" in the regression analysis because of its strong association with the target variable, which could lead to skewed results. It makes sense that these two variables would be correlated because the nature of the variable is directly related to the Ladder variable.
 
+The correlation plot also shows a strong association between Delivery.Quality and Democratic.Quality. It only makes sense to include one of these variables since they contain the same information. I chose to include Democratic.Quality.
+
 ```{r}
-happy<-select(happy, -Standard.deviation.of.ladder.by.country.year, -Standard.deviation.Mean.of.ladder.by.country.year)
+happy<-select(happy, -Standard.deviation.of.ladder.by.country.year, -Standard.deviation.Mean.of.ladder.by.country.year, -Delivery.Quality)
 ```
 
 # The Regression Model
+Now that the data is clean and preprocessed, it is time to consider the type of model to use to determine what factors effect a country's happiness. I will use an explanatory regression model because we are interested in identifying the factors that affect a country's happiness score. I will use a multiple linear regression model with interaction terms for the analysis.
+
+There are several varaibles not included in the analysis because it would not add to the model, including Country.Name and year. The results of the model are below. 
 ```{r}
-happy.reg<-lm(Life.Ladder~Log.GDP.per.capita+Social.support+Healthy.life.expectancy.at.birth+Freedom.to.make.life.choices+Generosity+Perceptions.of.corruption+Positive.affect+Confidence.in.national.government+gini.of.household.income.reported.in.Gallup..by.wp5.year+Positive.affect:Confidence.in.national.government+Generosity:Delivery.Quality+Log.GDP.per.capita:Positive.affect+year-Country.name, data=happy)
+happy.reg<-lm(Life.Ladder~Log.GDP.per.capita+Social.support+Healthy.life.expectancy.at.birth+Freedom.to.make.life.choices+Generosity+Perceptions.of.corruption+Positive.affect+Confidence.in.national.government+gini.of.household.income.reported.in.Gallup..by.wp5.year+-Country.name, data=happy)
 summary(happy.reg)
 ```
-The explanatory regression model includes 12 variables and 3 interaction variables.  All of the variables included in the model are significant with p-values above alpha = .05.
+The explanatory regression model includes 12 variables. All of the variables included in the model are significant with p-values above alpha = .05.
+
+We would expect all of the variables that are included in the model to make sense. For example, it is reasonable to assume that the more freedom a citizen has to make life choices, their happiness would increase, therefore increasing their country's happiness score. Similarly, the would expect as the percentage of people in a country that believe that their government has widespred corruption decreases, the happiness score also decreases.
 
 ```{r, echo=FALSE, results='hide'}
 confint(happy.reg,level=0.95)
@@ -308,6 +313,6 @@ This Normal Q-Q Plot of the residuals appears there is normal distribution in th
 
 # What does this mean for the World Health Organization?
 
-The model created in the report is significant, as well as all of the predictor variables included. By determining the most significant factors that influence the Life.Ladder score, the World Health Organization can determine the range of happiness scores by country and explore options for improvement, especially within the variables that have the highest significant influence on the Life.Ladder score. 
+The explanatory model created in the report is significant, as well as all of the predictor variables included. By determining the most significant factors that influence the Life.Ladder score, the World Health Organization can determine the range of happiness scores by country and explore options for improvement, especially within the variables that have the highest significant influence on the Life.Ladder score. We can use the information on the significant predictors for a country's Life Ladder score in order to identify struggling countrys and create potential solutions.
 
-For example, using the results from the model, the WHO can determine how country's may improve their citizens' confidence in the national government, which if the score improved by 1, could lead to a 2.359119 increase in a country's happiness score, which is a combination of their citizen's perceived happiness. The WHO can explore the variables in the model for each country to gain insight to the country's so that they can institute new policies that might, in the long run, affect happiness.
+For example, using the results from the model, the WHO can determine how country's may improve their citizens' Social Support, which if the score improved by 1, could lead to a 1.680946 increase in a country's happiness score, which is a combination of their citizen's perceived happiness. The WHO can explore the variables in the model for each country to gain insight to the country's so that they can institute new policies that might, in the long run, affect happiness.
